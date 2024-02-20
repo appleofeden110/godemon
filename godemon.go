@@ -1,60 +1,67 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
+	"io"
 	"log"
 	"os"
 	"path/filepath"
 )
-
-var paths = make([]string, 0)
 
 type FileTreeNode struct {
 	Value    os.FileInfo
 	Children []*FileTreeNode
 }
 
-func NewTree(path string, ignoreDirs map[string]bool) (*FileTreeNode, error) {
-	nodeI, err := os.Stat(path)
+func NewFileTree(paths []string, path string, ignoreDirs map[string]bool) (*FileTreeNode, []string, error) {
+	abs, err := filepath.Abs(path)
+	log.Println(abs)
 	if err != nil {
-		return nil, fmt.Errorf("failed to stat %s: %w", path, err)
+		log.Fatalf("Error getting absolute path: %v\n", err)
+		return nil, nil, err
 	}
-	node := &FileTreeNode{
-		Value:    nodeI,
-		Children: []*FileTreeNode{},
+	node, err := os.Stat(abs)
+	if err != nil {
+		log.Fatalf("Error getting stat of a file: %v\n", err)
+		return nil, nil, err
+	}
+	//init the node of the tree
+	n := &FileTreeNode{
+		Value:    node,
+		Children: make([]*FileTreeNode, 0),
 	}
 
-	if !nodeI.IsDir() {
-		// If the current path is not a directory, return the node without children
-		return node, nil
+	if !node.IsDir() {
+		return n, paths, nil
 	}
 
 	entries, err := os.ReadDir(path)
-	paths = append(paths, path)
-
 	if err != nil {
-		return nil, fmt.Errorf("failed to read directory %s: %w", path, err)
+		log.Fatalf("There is a problem in reading the directory: %v\n", err)
+		return nil, nil, err
 	}
-
-	for _, entry := range entries {
-		if entry.IsDir() {
-			// Check if the directory should be ignored
-			if ignoreDirs[entry.Name()] {
-				continue // Skip this directory
-			}
+	log.Println(entries)
+	for i := 0; i < len(entries); i++ {
+		if ignoreDirs[entries[i].Name()] && entries[i].IsDir() {
+			continue
 		}
-		childPath := filepath.Join(path, entry.Name())
-		childNode, err := NewTree(childPath, ignoreDirs)
+		np := filepath.Join(abs, entries[i].Name())
+		paths = append(paths, np)
+		log.Println("Paths: ", paths)
+		path = np
+		g, ps, err := NewFileTree(paths, path, ignoreDirs)
 		if err != nil {
-			return nil, err
+			log.Fatalf("error creating the tree inside recursion: %v\n", err)
+			return nil, nil, err
 		}
-		node.Children = append(node.Children, childNode)
+		log.Println(ps)
+		n.Children = append(n.Children, g)
 	}
-
-	return node, nil
+	return n, paths, nil
 }
 
-func walk(curr *FileTreeNode, path *[]os.FileInfo) []os.FileInfo {
+func walk(curr *FileTreeNode, path *[]string) []string {
 	if curr == nil {
 		fmt.Printf("no children left")
 		return *path
@@ -62,7 +69,7 @@ func walk(curr *FileTreeNode, path *[]os.FileInfo) []os.FileInfo {
 	//in order traversal presumes that you will go as far left from the current head node as possible to then print it when there is nothing further
 
 	// pre
-	*path = append(*path, curr.Value)
+	*path = append(*path, curr.Value.Name())
 	// recurse
 	for i := 0; i < len(curr.Children); i++ {
 		walk(curr.Children[i], path)
@@ -70,38 +77,40 @@ func walk(curr *FileTreeNode, path *[]os.FileInfo) []os.FileInfo {
 	return *path
 }
 
-func main() {
-	iD := map[string]bool{
-		".git":  true,
-		".idea": true,
-	}
-	rootNode, err := NewTree(".", iD)
-	log.Println(paths)
-	for _, i := range rootNode.Children {
-		fmt.Printf("hui %v\n", i.Value.IsDir())
-		fmt.Printf("hui2 %v\n", i.Value.Name())
-		if i.Value.IsDir() {
-			files, err := os.ReadDir(i.Value.Name())
-			if err != nil {
-				log.Fatalln("error reading directory: ", err)
-			}
-			fmt.Printf("something: %v\n", files)
-
-		}
-	}
-
+func IgnoreDirs(ignoreDirs map[string]bool) error {
+	jsonF, err := os.Open("ignoreDIrs.json")
 	if err != nil {
-		log.Fatalf("there is an error reading stat of root node tree: %v\n", err)
+		log.Fatalf("There is an error reading json file: %v\n", err)
+		return err
 	}
-	r, err := os.Stat(".")
-	var filePaths []os.FileInfo
-	root := &FileTreeNode{
-		Value:    r,
-		Children: []*FileTreeNode{},
+	defer jsonF.Close()
+
+	b, err := io.ReadAll(jsonF)
+	if err != nil {
+		log.Fatalf("error: %v\n", err)
+		return err
 	}
-	// Assuming you have a root node of the file tree
-	p := walk(root, &filePaths)
-	for _, i := range p {
-		println(i.Name())
+	err = json.Unmarshal(b, &ignoreDirs)
+	if err != nil {
+		log.Fatalf("There is an error unmarshaling data: %v\n", err)
+		return err
 	}
+	return nil
+}
+
+func main() {
+	d := make(map[string]bool, 0)
+	err := IgnoreDirs(d)
+	if err != nil {
+		log.Fatalln("THere is an error: ", err)
+		return
+	}
+	log.Println(d)
+	ps := make([]string, 0)
+	thing, paths, err := NewFileTree(ps, ".", d)
+	if err != nil {
+		log.Fatalf("Fuck: ", err)
+		return
+	}
+	log.Printf("thing: %v\n, thing2: %v\n", thing.Value.Name(), paths)
 }
