@@ -2,79 +2,138 @@ package main
 
 import (
 	"encoding/json"
-	"fmt"
 	"io"
 	"log"
 	"os"
 	"path/filepath"
 )
 
-type FileTreeNode struct {
-	Value    os.FileInfo
-	Children []*FileTreeNode
+type (
+	Qnode[T any] struct {
+		Value T
+		Next  *Qnode[T]
+		Prev  *Qnode[T]
+	}
+	Queue[T any] struct {
+		Head   *Qnode[T]
+		Tail   *Qnode[T]
+		Length int8
+	}
+	Qinterface[T any] interface {
+		Enqueue(v T)
+	}
+	FileTreeNode struct {
+		Value    os.FileInfo
+		Path     string
+		Children []*FileTreeNode
+	}
+	FileChecking[T any] interface {
+		BFS(v os.FileInfo)
+	}
+)
+
+// error checking:
+func check(e error) {
+	if e != nil {
+		log.Fatalf("Some error occured: %v\n", e)
+	}
 }
 
-func NewFileTree(paths []string, path string, ignoreDirs map[string]bool) (*FileTreeNode, []string, error) {
-	abs, err := filepath.Abs(path)
-	log.Println(abs)
-	if err != nil {
-		log.Fatalf("Error getting absolute path: %v\n", err)
-		return nil, nil, err
-	}
-	node, err := os.Stat(abs)
-	if err != nil {
-		log.Fatalf("Error getting stat of a file: %v\n", err)
-		return nil, nil, err
-	}
-	//init the node of the tree
-	n := &FileTreeNode{
-		Value:    node,
-		Children: make([]*FileTreeNode, 0),
-	}
-
-	if !node.IsDir() {
-		return n, paths, nil
-	}
-
-	entries, err := os.ReadDir(path)
-	if err != nil {
-		log.Fatalf("There is a problem in reading the directory: %v\n", err)
-		return nil, nil, err
-	}
-	log.Println(entries)
-	for i := 0; i < len(entries); i++ {
-		if ignoreDirs[entries[i].Name()] && entries[i].IsDir() {
-			continue
-		}
-		np := filepath.Join(abs, entries[i].Name())
-		paths = append(paths, np)
-		log.Println("Paths: ", paths)
-		path = np
-		g, ps, err := NewFileTree(paths, path, ignoreDirs)
-		if err != nil {
-			log.Fatalf("error creating the tree inside recursion: %v\n", err)
-			return nil, nil, err
-		}
-		log.Println(ps)
-		n.Children = append(n.Children, g)
-	}
-	return n, paths, nil
+func NewQueue[T any]() *Queue[T] {
+	return &Queue[T]{}
 }
 
-func walk(curr *FileTreeNode, path *[]string) []string {
-	if curr == nil {
-		fmt.Printf("no children left")
-		return *path
+func (q *Queue[T]) Enqueue(v T) {
+	newNode := Qnode[T]{Value: v}
+	if q.Head == nil {
+		q.Head = &newNode
+		q.Tail = &newNode
+	} else {
+		q.Tail = &newNode
+		q.Tail.Next = &newNode
 	}
-	//in order traversal presumes that you will go as far left from the current head node as possible to then print it when there is nothing further
+	q.Length++
+}
 
-	// pre
-	*path = append(*path, curr.Value.Name())
-	// recurse
-	for i := 0; i < len(curr.Children); i++ {
-		walk(curr.Children[i], path)
+func (q *Queue[T]) Dequeue() *T {
+	if q.Head == nil {
+		return nil
 	}
-	return *path
+
+	head := q.Head
+	q.Head = q.Head.Next
+
+	head.Next = nil
+	q.Length--
+	return &head.Value
+}
+
+func NewFileNode(value os.FileInfo, relPath string) *FileTreeNode {
+	return &FileTreeNode{Value: value, Path: relPath}
+}
+
+func (n *FileTreeNode) BFS() *FileTreeNode {
+	//..procedure BFS(G, root) is
+	//2      let Q be a queue
+	//3      label root as explored
+	//4      Q.enqueue(root)
+	//5      while Q is not empty do
+	//6          v := Q.dequeue()
+	//7          if v is the goal then
+	//8              return v
+	//9          for all edges from v to w in G.adjacentEdges(v) do
+	//10              if w is not labeled as explored then
+	//11                  label w as explored
+	//12                  w.parent := v
+	//13                  Q.enqueue(w)
+	q := NewQueue[FileTreeNode]()
+	q.Enqueue(*n)
+
+	for q.Length != 0 {
+		v := q.Dequeue()
+		if v.changed() {
+			return v
+		}
+		if v.Value.IsDir() {
+			files, err := os.ReadDir(v.Path)
+			check(err)
+			for i := 0; i < len(files); i++ {
+				//check later and change
+				f, err := files[i].Info()
+				check(err)
+				var path string
+				if files[i].IsDir() {
+					path = "1"
+				} else {
+					path = "2"
+				}
+				q.Enqueue(*NewFileNode(f, path))
+			}
+		} else {
+			log.Fatalln("The root is not a directory, try changing your root")
+		}
+	}
+
+	return n
+}
+
+func (v *FileTreeNode) changed() bool {
+	return false
+}
+
+func (n *FileTreeNode) listFiles() {
+	if n.Value.IsDir() {
+		files, err := os.ReadDir(n.Path)
+		check(err)
+		for _, f := range files {
+			t, err := f.Info()
+			check(err)
+			node := NewFileNode(t, filepath.Join(n.Value.Name(), f.Name()))
+			n.Children = append(n.Children, node)
+		}
+	} else {
+
+	}
 }
 
 func IgnoreDirs(ignoreDirs map[string]bool) error {
@@ -99,18 +158,4 @@ func IgnoreDirs(ignoreDirs map[string]bool) error {
 }
 
 func main() {
-	d := make(map[string]bool, 0)
-	err := IgnoreDirs(d)
-	if err != nil {
-		log.Fatalln("THere is an error: ", err)
-		return
-	}
-	log.Println(d)
-	ps := make([]string, 0)
-	thing, paths, err := NewFileTree(ps, ".", d)
-	if err != nil {
-		log.Fatalf("Fuck: ", err)
-		return
-	}
-	log.Printf("thing: %v\n, thing2: %v\n", thing.Value.Name(), paths)
 }
