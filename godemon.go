@@ -6,7 +6,6 @@ import (
 	"io"
 	"log"
 	"os"
-	"path/filepath"
 	"time"
 )
 
@@ -36,14 +35,7 @@ type (
 )
 
 func (n *FileTreeNode) Error() error {
-	return fmt.Errorf("There is an error in godemon 𓁹‿𓁹 : %v", e)
-}
-
-// error checking:
-func check(e error) {
-	if e != nil {
-		log.Fatalf("Some error occured: %v\n", e)
-	}
+	return fmt.Errorf("There is an error in godemon 𓁹‿𓁹")
 }
 
 func NewQueue[T any]() *Queue[T] {
@@ -75,18 +67,20 @@ func (q *Queue[T]) Dequeue() *T {
 	return &head.Value
 }
 
-func NewFileNode(value os.FileInfo, relPath string) *FileTreeNode {
+func NewFileNode(relPath string) *FileTreeNode {
+	value, err := os.Stat(relPath)
+	check(err)
 	return &FileTreeNode{Value: value, Path: relPath}
 }
 
-func (n *FileTreeNode) BFS() *FileTreeNode {
+func (n *FileTreeNode) BFS(t time.Time) *FileTreeNode {
 
 	q := NewQueue[FileTreeNode]()
 	q.Enqueue(*n)
 
 	for q.Length != 0 {
 		v := q.Dequeue()
-		if v.changed() {
+		if v.changed(t) {
 			return v
 		}
 		if v.Value.IsDir() {
@@ -94,15 +88,13 @@ func (n *FileTreeNode) BFS() *FileTreeNode {
 			check(err)
 			for i := 0; i < len(files); i++ {
 				//check later and change
-				f, err := files[i].Info()
-				check(err)
 				var path string
 				if files[i].IsDir() {
 					path = "1"
 				} else {
 					path = "2"
 				}
-				q.Enqueue(*NewFileNode(f, path))
+				q.Enqueue(*NewFileNode(path))
 			}
 		} else {
 			log.Fatalln("The root is not a directory, try changing your root")
@@ -117,21 +109,6 @@ func (v *FileTreeNode) changed(t time.Time) bool {
 		return true
 	}
 	return false
-}
-
-func (n *FileTreeNode) listFiles() {
-	if n.Value.IsDir() {
-		files, err := os.ReadDir(n.Path)
-		check(err)
-		for _, f := range files {
-			t, err := f.Info()
-			check(err)
-			node := NewFileNode(t, filepath.Join(n.Value.Name(), f.Name()))
-			n.Children = append(n.Children, node)
-		}
-	} else {
-
-	}
 }
 
 func IgnoreDirs(ignoreDirs map[string]bool) error {
@@ -157,18 +134,18 @@ func IgnoreDirs(ignoreDirs map[string]bool) error {
 
 func (root *FileTreeNode) GodemonInit() error {
 	for {
+		initTime := time.Now()
+		root.BFS(initTime)
 		// logic for restart and ongoing
 		if root.Error() != nil {
-			fmt.Printf("There is an error in programme: %v\n", initErr)
+			fmt.Printf("There is an error in programme: %v\n", root.Error())
 			return root.Error()
 		}
 	}
 }
 
 func main() {
-	rootDir, err := os.Stat(".")
-	check(err)
-	n := NewFileNode(rootDir, ".")
-	err = n.GodemonInit()
+	n := NewFileNode(".")
+	err := n.GodemonInit()
 	check(err)
 }
