@@ -2,10 +2,12 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"io"
 	"log"
 	"os"
 	"path/filepath"
+	"time"
 )
 
 type (
@@ -29,8 +31,13 @@ type (
 	}
 	FileChecking[T any] interface {
 		BFS(v os.FileInfo)
+		Error() error
 	}
 )
+
+func (n *FileTreeNode) Error() error {
+	return fmt.Errorf("There is an error in godemon 𓁹‿𓁹 : %v", e)
+}
 
 // error checking:
 func check(e error) {
@@ -73,19 +80,7 @@ func NewFileNode(value os.FileInfo, relPath string) *FileTreeNode {
 }
 
 func (n *FileTreeNode) BFS() *FileTreeNode {
-	//..procedure BFS(G, root) is
-	//2      let Q be a queue
-	//3      label root as explored
-	//4      Q.enqueue(root)
-	//5      while Q is not empty do
-	//6          v := Q.dequeue()
-	//7          if v is the goal then
-	//8              return v
-	//9          for all edges from v to w in G.adjacentEdges(v) do
-	//10              if w is not labeled as explored then
-	//11                  label w as explored
-	//12                  w.parent := v
-	//13                  Q.enqueue(w)
+
 	q := NewQueue[FileTreeNode]()
 	q.Enqueue(*n)
 
@@ -117,7 +112,10 @@ func (n *FileTreeNode) BFS() *FileTreeNode {
 	return n
 }
 
-func (v *FileTreeNode) changed() bool {
+func (v *FileTreeNode) changed(t time.Time) bool {
+	if v.Value.ModTime() != t {
+		return true
+	}
 	return false
 }
 
@@ -157,5 +155,20 @@ func IgnoreDirs(ignoreDirs map[string]bool) error {
 	return nil
 }
 
+func (root *FileTreeNode) GodemonInit() error {
+	for {
+		// logic for restart and ongoing
+		if root.Error() != nil {
+			fmt.Printf("There is an error in programme: %v\n", initErr)
+			return root.Error()
+		}
+	}
+}
+
 func main() {
+	rootDir, err := os.Stat(".")
+	check(err)
+	n := NewFileNode(rootDir, ".")
+	err = n.GodemonInit()
+	check(err)
 }
