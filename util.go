@@ -14,7 +14,6 @@ type (
 		Children []*FileTreeNode
 	}
 	FileChecking[T any] interface {
-		BFS(t time.Time) *FileTreeNode
 		Error() error
 	}
 )
