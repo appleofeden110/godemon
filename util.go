@@ -1,9 +1,12 @@
-package main
+package godemon
 
 import (
+	"errors"
 	"fmt"
 	"log"
 	"os"
+	"os/exec"
+	"path/filepath"
 	"time"
 )
 
@@ -13,13 +16,51 @@ type (
 		Path     string
 		Children []*FileTreeNode
 	}
-	FileChecking[T any] interface {
-		Error() error
-	}
 )
 
-func (n *FileTreeNode) Error() error {
-	return fmt.Errorf("There is an error in godemon 𓁹‿𓁹")
+var (
+	ErrChanged = errors.New("File has changed")
+)
+
+func shell() error {
+	absPath, err := filepath.Abs(".")
+	check(err)
+	rootName, err := os.Stat(absPath)
+	check(err)
+	scriptName := "restart.bat"
+	// Define the contents of the batch file
+	contents := fmt.Sprintf(`
+		echo hello world
+		go build %v
+		%v\%v.exe
+	`, absPath, absPath, rootName)
+
+	// Create the batch file
+	file, err := os.Create("restart.bat")
+	if err != nil {
+		log.Println("there is an error: ", err)
+		return err
+	}
+	defer file.Close()
+
+	// Write the contents to the file
+	_, err = file.WriteString(contents)
+	if err != nil {
+		panic(err)
+	}
+
+	// Execute the batch file
+	err = exec.Command(filepath.Join(absPath, scriptName)).Run()
+	if err != nil {
+		fmt.Printf("Failed to execute restart.bat: %v\n", err)
+		return err
+	}
+	fmt.Println("Server Restarted")
+	return nil
+}
+
+func (n *FileTreeNode) Error(err error) error {
+	return fmt.Errorf("There is an error in godemon 𓁹‿𓁹: %v", err)
 }
 
 func newFileNode(relPath string) *FileTreeNode {
