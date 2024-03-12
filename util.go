@@ -1,4 +1,4 @@
-package godemon
+package main
 
 import (
 	"errors"
@@ -7,7 +7,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"time"
 )
 
 type (
@@ -24,9 +23,9 @@ var (
 
 func shell() error {
 	absPath, err := filepath.Abs(".")
-	check(err)
+	checkf("1.1", err)
 	rootName, err := os.Stat(absPath)
-	check(err)
+	checkf("1.2", err)
 	scriptName := "restart.bat"
 	// Define the contents of the batch file
 	contents := fmt.Sprintf(`
@@ -45,9 +44,7 @@ func shell() error {
 
 	// Write the contents to the file
 	_, err = file.WriteString(contents)
-	if err != nil {
-		panic(err)
-	}
+	checkf("hui", err)
 
 	// Execute the batch file
 	err = exec.Command(filepath.Join(absPath, scriptName)).Run()
@@ -72,23 +69,27 @@ func newFileNode(relPath string) *FileTreeNode {
 // check() takes in error and checks if it's nil or not.
 // It takes the boilerplate and basically transforms into a very easy function.
 // If needed, error can always be specified, no need to call it on every error in the program
-func check(e error) {
+func check(e error) bool {
 	if e != nil {
 		log.Fatalf("Some error occured: %v\n", e)
-	}
-}
-
-func checkf(msg string, e error) {
-	if e != nil {
-		log.Fatalf("%v: %v\n", msg, e)
-	}
-}
-
-// changed(t time.Time) (bool) tracks actual changing time of the file.
-// "t" represents initial time that everything tracks with.
-func (v *FileTreeNode) changed(t time.Time) bool {
-	if v.Value.ModTime() != t {
 		return true
 	}
 	return false
 }
+
+func checkf(msg string, e error) bool {
+	if e != nil {
+		log.Fatalf("%v: %v\n", msg, e)
+		return true
+	}
+	return false
+}
+
+// changed(t time.Time) (bool) tracks actual changing time of the file.
+// "t" represents initial time that everything tracks with.
+//func (n *FileTreeNode) changed() bool {
+//	if n.Value.ModTime() !=  {
+//		return true
+//	}
+//	return false
+//}
