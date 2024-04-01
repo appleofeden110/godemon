@@ -14,6 +14,7 @@ type KeyFile struct {
 	Name, Path string
 }
 
+// checks the file tree and gives FileTreeNode with the whole tree in it, and otherwise gives an error
 func BLR(path string, fls map[KeyFile]time.Time) (*FileTreeNode, error) {
 	n := newFileNode(path)
 	if n.Value.IsDir() {
@@ -79,18 +80,16 @@ func GodemonInit() error {
 		check(err)
 
 		if !mapCompare(flsBackUp, fls) {
-			err := shell()
-			if err != nil {
-				fmt.Printf("There is an error running bash file: %v\n", err)
-				return err
-			}
+			//gives an infinite loop for no fucking reason
+
 			// Create a new map and deep copy fls into it
 			newBackup := make(map[KeyFile]time.Time)
 			for k, v := range fls {
 				newBackup[k] = v
 			}
 			flsBackUp = newBackup // Now flsBackUp is a deep copy of fls
-
+			log.Println("size: ", len(flsBackUp))
+			log.Println(flsBackUp)
 			log.Println("Files have changed, action taken.")
 		} else {
 			log.Println("No changes detected.")

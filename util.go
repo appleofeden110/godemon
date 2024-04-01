@@ -22,44 +22,39 @@ var (
 )
 
 func shell() error {
+	// Now, proceed with the build
 	absPath, err := filepath.Abs(".")
-	checkf("1.1", err)
+	if err != nil {
+		return fmt.Errorf("1.1: %v", err)
+	}
 	rootName, err := os.Stat(absPath)
-	checkf("1.2", err)
-	scriptName := "restart.bat"
-	// Define the contents of the batch file
-	contents := fmt.Sprintf(`
-		go build -buildvcs=false %v
-		%v\%v.exe
-	`, ".", absPath, rootName.Name())
-
-	// Create the batch file
-	file, err := os.Create("restart.bat")
 	if err != nil {
-		log.Println("there is an error: ", err)
+		fmt.Println("there is a problem calling os.stat: ", err)
 		return err
 	}
-	// Write the contents to the file
-	_, err = file.WriteString(contents)
-	checkf("hui", err)
 
-	file.Close()
-	// Execute the batch file
-	cmd := exec.Command("cmd", "/C", scriptName)
+	cmd := exec.Command("go", "build", ".")
 	cmd.Dir = absPath // Set the working directory if needed
-	err = cmd.Run()
-	if err != nil {
-		fmt.Printf("Failed to execute restart.bat: %v\n", err)
-		return err
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("Failed to build: %v", err)
 	}
+	fmt.Println("process built")
 
+	cmd = exec.Command("cmd", "/C", rootName.Name())
+	if err := cmd.Run(); err != nil { // Use Start instead of Run
+		return fmt.Errorf("Failed to execute exe: %v", err)
+	}
+	cmd = exec.Command("cmd", "exit 0")
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("Failed to exit cmd: %v\n", err)
+	}
 	fmt.Println("Server Restarted")
 
 	return nil
 }
 
 func (n *FileTreeNode) Error(err error) error {
-	return fmt.Errorf("There is an error in godemon 𓁹‿𓁹: %v", err)
+	return fmt.Errorf("GoDemon 𓁹‿𓁹: %v", err)
 }
 
 func newFileNode(relPath string) *FileTreeNode {

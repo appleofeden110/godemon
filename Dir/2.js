@@ -1,1 +1,1 @@
-asdf
+const name = "Nazar"
