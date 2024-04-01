@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"os"
 	"path/filepath"
 	"time"
@@ -27,7 +28,6 @@ func BLR(path string, fls map[KeyFile]time.Time) (*FileTreeNode, error) {
 			}
 			childPath := filepath.Join(path, f.Name())
 			childNode := newFileNode(childPath)
-			fmt.Printf("name: %v\n path: %v\n modification time: %v\n", childNode.Value.Name(), childPath, childNode.Value.ModTime())
 			fls[KeyFile{childNode.Value.Name(), childPath}] = childNode.Value.ModTime()
 			_, _ = BLR(childPath, fls)
 
@@ -36,7 +36,6 @@ func BLR(path string, fls map[KeyFile]time.Time) (*FileTreeNode, error) {
 			}
 		}
 	}
-	fmt.Printf("Hello, buddy:%v\n", fls[KeyFile{"dir2", "Dir/dir2"}])
 	return n, nil
 }
 
@@ -59,59 +58,60 @@ func IgnoreDirs(ignoreDirs map[string]bool) error {
 	return nil
 }
 
-//
-//func mapCompare(map1, map2 map[KeyFile]time.Time) bool {
-//	if len(map1) != len(map2) {
-//		return false
-//	}
-//	for key, val := range map1 {
-//		if val2, exists := map2[key]; !exists || !val.Equal(val2) {
-//			return false
-//		}
-//	}
-//	return true
-//}
-//
-//func GodemonInit() error {
-//	flsBackUp := make(map[KeyFile]time.Time)
-//	fls := make(map[KeyFile]time.Time)
-//	for {
-//		root, err := BLR(".", fls)
-//		if len(flsBackUp) == 0 || mapCompare(flsBackUp, fls) {
-//
-//		}
-//		if checkf("There is some trouble with app", err) {
-//			log.Fatalln("")
-//			return err
-//		}
-//		fmt.Println("Hui NAZ")
-//		time.Sleep(400 * time.Millisecond)
-//	}
-//}
+func mapCompare(map1, map2 map[KeyFile]time.Time) bool {
+	if len(map1) != len(map2) {
+		return false
+	}
+	for key, val := range map1 {
+		if val2, exists := map2[key]; !exists || !val.Equal(val2) {
+			return false
+		}
+	}
+	return true
+}
 
-//func Main() {
-//	prevTime := time.Now()
-//	thing, err := BLR(".", prevTime)
-//	check(err)
-//	fmt.Println(thing.Path, thing.Value.ModTime())
+func GodemonInit() error {
+	flsBackUp := make(map[KeyFile]time.Time)
+	fls := make(map[KeyFile]time.Time)
+
+	for {
+		_, err := BLR(".", fls)
+		check(err)
+
+		if !mapCompare(flsBackUp, fls) {
+			err := shell()
+			if err != nil {
+				fmt.Printf("There is an error running bash file: %v\n", err)
+				return err
+			}
+			// Create a new map and deep copy fls into it
+			newBackup := make(map[KeyFile]time.Time)
+			for k, v := range fls {
+				newBackup[k] = v
+			}
+			flsBackUp = newBackup // Now flsBackUp is a deep copy of fls
+
+			log.Println("Files have changed, action taken.")
+		} else {
+			log.Println("No changes detected.")
+		}
+
+		fmt.Println("Waiting for changes...")
+		time.Sleep(400 * time.Millisecond)
+	}
+}
+
 //
-//	for i := 0; i < len(thing.Children); i++ {
-//		fmt.Println(thing.Children[i].Value.Name())
+//func Main() {
+//	err := GodemonInit()
+//	if err != nil {
+//		log.Fatalf("pizdec: %v\n", err)
 //	}
-//	err = shell()
-//	check(err)
 //}
 
 func main() {
-	fls := make(map[KeyFile]time.Time)
-
-	thing, err := BLR(".", fls)
-	check(err)
-	fmt.Println(thing.Path, thing.Value.ModTime())
-
-	for i := 0; i < len(thing.Children); i++ {
-		fmt.Println(thing.Children[i].Value.Name())
+	err := GodemonInit()
+	if err != nil {
+		panic(err)
 	}
-	//err = shell()
-	//check(err)
 }

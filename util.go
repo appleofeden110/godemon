@@ -29,10 +29,9 @@ func shell() error {
 	scriptName := "restart.bat"
 	// Define the contents of the batch file
 	contents := fmt.Sprintf(`
-		echo hello world
-		go build %v
+		go build -buildvcs=false %v
 		%v\%v.exe
-	`, absPath, absPath, rootName)
+	`, ".", absPath, rootName.Name())
 
 	// Create the batch file
 	file, err := os.Create("restart.bat")
@@ -40,19 +39,22 @@ func shell() error {
 		log.Println("there is an error: ", err)
 		return err
 	}
-	defer file.Close()
-
 	// Write the contents to the file
 	_, err = file.WriteString(contents)
 	checkf("hui", err)
 
+	file.Close()
 	// Execute the batch file
-	err = exec.Command(filepath.Join(absPath, scriptName)).Run()
+	cmd := exec.Command("cmd", "/C", scriptName)
+	cmd.Dir = absPath // Set the working directory if needed
+	err = cmd.Run()
 	if err != nil {
 		fmt.Printf("Failed to execute restart.bat: %v\n", err)
 		return err
 	}
+
 	fmt.Println("Server Restarted")
+
 	return nil
 }
 
