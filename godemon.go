@@ -6,146 +6,111 @@ import (
 	"io"
 	"log"
 	"os"
+	"path/filepath"
 	"time"
 )
 
-type (
-	Qnode[T any] struct {
-		Value T
-		Next  *Qnode[T]
-		Prev  *Qnode[T]
-	}
-	Queue[T any] struct {
-		Head   *Qnode[T]
-		Tail   *Qnode[T]
-		Length int8
-	}
-	Qinterface[T any] interface {
-		Enqueue(v T)
-	}
-	FileTreeNode struct {
-		Value    os.FileInfo
-		Path     string
-		Children []*FileTreeNode
-	}
-	FileChecking[T any] interface {
-		BFS(v os.FileInfo)
-		Error() error
-	}
-)
-
-func (n *FileTreeNode) Error() error {
-	return fmt.Errorf("There is an error in godemon 𓁹‿𓁹")
+type KeyFile struct {
+	Name, Path string
 }
 
-func NewQueue[T any]() *Queue[T] {
-	return &Queue[T]{}
-}
-
-func (q *Queue[T]) Enqueue(v T) {
-	newNode := Qnode[T]{Value: v}
-	if q.Head == nil {
-		q.Head = &newNode
-		q.Tail = &newNode
-	} else {
-		q.Tail = &newNode
-		q.Tail.Next = &newNode
-	}
-	q.Length++
-}
-
-func (q *Queue[T]) Dequeue() *T {
-	if q.Head == nil {
-		return nil
-	}
-
-	head := q.Head
-	q.Head = q.Head.Next
-
-	head.Next = nil
-	q.Length--
-	return &head.Value
-}
-
-func NewFileNode(relPath string) *FileTreeNode {
-	value, err := os.Stat(relPath)
-	check(err)
-	return &FileTreeNode{Value: value, Path: relPath}
-}
-
-func (n *FileTreeNode) BFS(t time.Time) *FileTreeNode {
-
-	q := NewQueue[FileTreeNode]()
-	q.Enqueue(*n)
-
-	for q.Length != 0 {
-		v := q.Dequeue()
-		if v.changed(t) {
-			return v
-		}
-		if v.Value.IsDir() {
-			files, err := os.ReadDir(v.Path)
-			check(err)
-			for i := 0; i < len(files); i++ {
-				//check later and change
-				var path string
-				if files[i].IsDir() {
-					path = "1"
-				} else {
-					path = "2"
-				}
-				q.Enqueue(*NewFileNode(path))
+// checks the file tree and gives FileTreeNode with the whole tree in it, and otherwise gives an error
+func BLR(path string, fls map[KeyFile]time.Time) (*FileTreeNode, error) {
+	n := newFileNode(path)
+	if n.Value.IsDir() {
+		files, err := os.ReadDir(path)
+		check(err)
+		dirignore := make(map[string]bool)
+		err = IgnoreDirs(dirignore)
+		check(err)
+		for _, f := range files {
+			if f.IsDir() && dirignore[f.Name()] {
+				continue
 			}
-		} else {
-			log.Fatalln("The root is not a directory, try changing your root")
+			childPath := filepath.Join(path, f.Name())
+			childNode := newFileNode(childPath)
+			fls[KeyFile{childNode.Value.Name(), childPath}] = childNode.Value.ModTime()
+			_, _ = BLR(childPath, fls)
+
+			if childNode != nil {
+				n.Children = append(n.Children, childNode)
+			}
 		}
 	}
-
-	return n
-}
-
-func (v *FileTreeNode) changed(t time.Time) bool {
-	if v.Value.ModTime() != t {
-		return true
-	}
-	return false
+	return n, nil
 }
 
 func IgnoreDirs(ignoreDirs map[string]bool) error {
-	jsonF, err := os.Open("ignoreDIrs.json")
+	jsonF, err := os.Open("ignoreDirs.json")
 	if err != nil {
-		log.Fatalf("There is an error reading json file: %v\n", err)
-		return err
+		return fmt.Errorf("There is an error reading json file: %v\n", err)
+
 	}
 	defer jsonF.Close()
 
 	b, err := io.ReadAll(jsonF)
 	if err != nil {
-		log.Fatalf("error: %v\n", err)
-		return err
+		return fmt.Errorf("error: %v", err)
 	}
 	err = json.Unmarshal(b, &ignoreDirs)
 	if err != nil {
-		log.Fatalf("There is an error unmarshaling data: %v\n", err)
-		return err
+		return fmt.Errorf("There is an error unmarshaling data: %v\n", err)
 	}
 	return nil
 }
 
-func (root *FileTreeNode) GodemonInit() error {
-	for {
-		initTime := time.Now()
-		root.BFS(initTime)
-		// logic for restart and ongoing
-		if root.Error() != nil {
-			fmt.Printf("There is an error in programme: %v\n", root.Error())
-			return root.Error()
+func mapCompare(map1, map2 map[KeyFile]time.Time) bool {
+	if len(map1) != len(map2) {
+		return false
+	}
+	for key, val := range map1 {
+		if val2, exists := map2[key]; !exists || !val.Equal(val2) {
+			return false
 		}
+	}
+	return true
+}
+
+func GodemonInit() error {
+	flsBackUp := make(map[KeyFile]time.Time)
+	fls := make(map[KeyFile]time.Time)
+
+	for {
+		_, err := BLR(".", fls)
+		check(err)
+
+		if !mapCompare(flsBackUp, fls) {
+			//gives an infinite loop for no fucking reason
+
+			// Create a new map and deep copy fls into it
+			newBackup := make(map[KeyFile]time.Time)
+			for k, v := range fls {
+				newBackup[k] = v
+			}
+			flsBackUp = newBackup // Now flsBackUp is a deep copy of fls
+			log.Println("size: ", len(flsBackUp))
+			log.Println(flsBackUp)
+			log.Println("Files have changed, action taken.")
+		} else {
+			log.Println("No changes detected.")
+		}
+
+		fmt.Println("Waiting for changes...")
+		time.Sleep(400 * time.Millisecond)
 	}
 }
 
+//
+//func Main() {
+//	err := GodemonInit()
+//	if err != nil {
+//		log.Fatalf("pizdec: %v\n", err)
+//	}
+//}
+
 func main() {
-	n := NewFileNode(".")
-	err := n.GodemonInit()
-	check(err)
+	err := GodemonInit()
+	if err != nil {
+		panic(err)
+	}
 }
