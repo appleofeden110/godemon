@@ -1,4 +1,4 @@
-package main
+package godemon
 
 import (
 	"encoding/json"
@@ -80,7 +80,7 @@ func GodemonInit() error {
 		check(err)
 
 		if !mapCompare(flsBackUp, fls) {
-			//gives an infinite loop for no fucking reason
+			//for now, no shell()
 
 			// Create a new map and deep copy fls into it
 			newBackup := make(map[KeyFile]time.Time)
@@ -97,20 +97,5 @@ func GodemonInit() error {
 
 		fmt.Println("Waiting for changes...")
 		time.Sleep(400 * time.Millisecond)
-	}
-}
-
-//
-//func Main() {
-//	err := GodemonInit()
-//	if err != nil {
-//		log.Fatalf("pizdec: %v\n", err)
-//	}
-//}
-
-func main() {
-	err := GodemonInit()
-	if err != nil {
-		panic(err)
 	}
 }
