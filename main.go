@@ -3,7 +3,6 @@ package godemon
 import (
 	"encoding/json"
 	"fmt"
-	shell "github.com/appleofeden110/godemon/shell"
 	"io"
 	"log"
 	"os"
@@ -82,10 +81,7 @@ func GodemonInit() error {
 
 		if !mapCompare(flsBackUp, fls) {
 			//for now, no shell()
-			err = shell.Shell()
-			if err != nil {
-				panic(err)
-			}
+
 			// Create a new map and deep copy fls into it
 			newBackup := make(map[KeyFile]time.Time)
 			for k, v := range fls {
