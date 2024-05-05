@@ -1,10 +1,15 @@
 package tree
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
-	"log"
+	"github.com/appleofeden110/godemon"
+	"github.com/appleofeden110/godemon/utils"
+	"io"
 	"os"
+	"path/filepath"
+	"time"
 )
 
 type (
@@ -25,25 +30,51 @@ func (n *FileTreeNode) Error(err error) error {
 
 func NewFileNode(relPath string) *FileTreeNode {
 	value, err := os.Stat(relPath)
-	Check(err)
+	utils.Check(err)
 	return &FileTreeNode{Value: value, Path: relPath}
 }
 
-// check() takes in error and checks if it's nil or not.
-// It takes the boilerplate and basically transforms into a very easy function.
-// If needed, error can always be specified, no need to call it on every error in the program
-func Check(e error) bool {
-	if e != nil {
-		log.Fatalf("Some error occured: %v\n", e)
-		return true
+// checks the file tree and gives FileTreeNode with the whole tree in it, and otherwise gives an error
+func BLR(path string, fls map[godemon.KeyFile]time.Time) (*FileTreeNode, error) {
+	n := NewFileNode(path)
+	if n.Value.IsDir() {
+		files, err := os.ReadDir(path)
+		utils.Check(err)
+		dirignore := make(map[string]bool)
+		err = IgnoreDirs(dirignore)
+		utils.Check(err)
+		for _, f := range files {
+			if f.IsDir() && dirignore[f.Name()] {
+				continue
+			}
+			childPath := filepath.Join(path, f.Name())
+			childNode := NewFileNode(childPath)
+			fls[godemon.KeyFile{childNode.Value.Name(), childPath}] = childNode.Value.ModTime()
+			_, _ = BLR(childPath, fls)
+
+			if childNode != nil {
+				n.Children = append(n.Children, childNode)
+			}
+		}
 	}
-	return false
+	return n, nil
 }
 
-func checkf(msg string, e error) bool {
-	if e != nil {
-		log.Fatalf("%v: %v\n", msg, e)
-		return true
+func IgnoreDirs(ignoreDirs map[string]bool) error {
+	jsonF, err := os.Open("ignoreDirs.json")
+	if err != nil {
+		return fmt.Errorf("There is an error reading json file: %v\n", err)
+
 	}
-	return false
+	defer jsonF.Close()
+
+	b, err := io.ReadAll(jsonF)
+	if err != nil {
+		return fmt.Errorf("error: %v", err)
+	}
+	err = json.Unmarshal(b, &ignoreDirs)
+	if err != nil {
+		return fmt.Errorf("There is an error unmarshaling data: %v\n", err)
+	}
+	return nil
 }
