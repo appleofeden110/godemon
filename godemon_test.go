@@ -1,3 +1,0 @@
-package godemon
-
-//To be written...
