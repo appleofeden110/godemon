@@ -1,8 +1,9 @@
-package godemon
+package main
 
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/appleofeden110/godemon/tree"
 	"io"
 	"log"
 	"os"
@@ -15,20 +16,20 @@ type KeyFile struct {
 }
 
 // checks the file tree and gives FileTreeNode with the whole tree in it, and otherwise gives an error
-func BLR(path string, fls map[KeyFile]time.Time) (*FileTreeNode, error) {
-	n := newFileNode(path)
+func BLR(path string, fls map[KeyFile]time.Time) (*tree.FileTreeNode, error) {
+	n := tree.NewFileNode(path)
 	if n.Value.IsDir() {
 		files, err := os.ReadDir(path)
-		check(err)
+		tree.Check(err)
 		dirignore := make(map[string]bool)
 		err = IgnoreDirs(dirignore)
-		check(err)
+		tree.Check(err)
 		for _, f := range files {
 			if f.IsDir() && dirignore[f.Name()] {
 				continue
 			}
 			childPath := filepath.Join(path, f.Name())
-			childNode := newFileNode(childPath)
+			childNode := tree.NewFileNode(childPath)
 			fls[KeyFile{childNode.Value.Name(), childPath}] = childNode.Value.ModTime()
 			_, _ = BLR(childPath, fls)
 
@@ -77,7 +78,7 @@ func GodemonInit() error {
 
 	for {
 		_, err := BLR(".", fls)
-		check(err)
+		tree.Check(err)
 
 		if !mapCompare(flsBackUp, fls) {
 			//for now, no shell()
@@ -97,5 +98,11 @@ func GodemonInit() error {
 
 		fmt.Println("Waiting for changes...")
 		time.Sleep(400 * time.Millisecond)
+	}
+}
+func main() {
+	err := GodemonInit()
+	if err != nil {
+		panic(err)
 	}
 }
