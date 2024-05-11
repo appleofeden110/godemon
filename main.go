@@ -1,4 +1,4 @@
-package godemon
+package main
 
 import (
 	"fmt"
@@ -8,11 +8,7 @@ import (
 	"time"
 )
 
-type KeyFile struct {
-	Name, Path string
-}
-
-func mapCompare(map1, map2 map[KeyFile]time.Time) bool {
+func mapCompare(map1, map2 map[tree.KeyFile]time.Time) bool {
 	if len(map1) != len(map2) {
 		return false
 	}
@@ -25,8 +21,8 @@ func mapCompare(map1, map2 map[KeyFile]time.Time) bool {
 }
 
 func GodemonInit() error {
-	flsBackUp := make(map[KeyFile]time.Time)
-	fls := make(map[KeyFile]time.Time)
+	flsBackUp := make(map[tree.KeyFile]time.Time)
+	fls := make(map[tree.KeyFile]time.Time)
 
 	for {
 		_, err := tree.BLR(".", fls)
@@ -36,7 +32,7 @@ func GodemonInit() error {
 			//for now, no shell()
 
 			// Create a new map and deep copy fls into it
-			newBackup := make(map[KeyFile]time.Time)
+			newBackup := make(map[tree.KeyFile]time.Time)
 			for k, v := range fls {
 				newBackup[k] = v
 			}
@@ -50,5 +46,12 @@ func GodemonInit() error {
 
 		fmt.Println("Waiting for changes...")
 		time.Sleep(400 * time.Millisecond)
+	}
+}
+
+func main() {
+	err := GodemonInit()
+	if err != nil {
+		panic(err)
 	}
 }

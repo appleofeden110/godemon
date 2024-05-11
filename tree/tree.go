@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/appleofeden110/godemon"
 	"github.com/appleofeden110/godemon/utils"
 	"io"
 	"os"
@@ -17,6 +16,10 @@ type (
 		Value    os.FileInfo
 		Path     string
 		Children []*FileTreeNode
+	}
+
+	KeyFile struct {
+		Name, Path string
 	}
 )
 
@@ -35,7 +38,7 @@ func NewFileNode(relPath string) *FileTreeNode {
 }
 
 // checks the file tree and gives FileTreeNode with the whole tree in it, and otherwise gives an error
-func BLR(path string, fls map[godemon.KeyFile]time.Time) (*FileTreeNode, error) {
+func BLR(path string, fls map[KeyFile]time.Time) (*FileTreeNode, error) {
 	n := NewFileNode(path)
 	if n.Value.IsDir() {
 		files, err := os.ReadDir(path)
@@ -49,7 +52,7 @@ func BLR(path string, fls map[godemon.KeyFile]time.Time) (*FileTreeNode, error) 
 			}
 			childPath := filepath.Join(path, f.Name())
 			childNode := NewFileNode(childPath)
-			fls[godemon.KeyFile{childNode.Value.Name(), childPath}] = childNode.Value.ModTime()
+			fls[KeyFile{childNode.Value.Name(), childPath}] = childNode.Value.ModTime()
 			_, _ = BLR(childPath, fls)
 
 			if childNode != nil {
