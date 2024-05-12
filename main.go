@@ -1,4 +1,4 @@
-package main
+package godemon
 
 import (
 	"fmt"
@@ -49,9 +49,10 @@ func GodemonInit() error {
 	}
 }
 
-func main() {
-	err := GodemonInit()
-	if err != nil {
-		panic(err)
-	}
-}
+//
+//func main() {
+//	err := GodemonInit()
+//	if err != nil {
+//		panic(err)
+//	}
+//}
