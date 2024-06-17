@@ -1,10 +1,11 @@
-package main
+package godemon
 
 import (
 	"fmt"
 	"github.com/appleofeden110/godemon/shell"
 	"github.com/appleofeden110/godemon/tree"
 	"log"
+	"os"
 	"time"
 )
 
@@ -29,7 +30,13 @@ func GodemonInit() error {
 		check(err, "tree problem")
 		if !mapCompare(flsBackUp, fls) {
 			//for now, no shell()
-
+			prgName := os.Args[0]
+			p, err := shell.GetPIDs(prgName)
+			check(err, "err getting pid")
+			q, errs := shell.RestartL(p[0])
+			check(errs, "restart")
+			node := q.Peek()
+			fmt.Println(node)
 			// Create a new map and deep copy fls into it
 			newBackup := make(map[tree.KeyFile]time.Time)
 			for k, v := range fls {
@@ -54,13 +61,10 @@ func check(err error, msg ...string) {
 	}
 }
 
-func main() {
-	err := GodemonInit()
-	if err != nil {
-		panic(err)
-	}
-}
-
-func ShellHAHA() (*shell.File, error) {
-	return shell.CreateFile()
-}
+//
+//func main() {
+//	err := GodemonInit()
+//	if err != nil {
+//		panic(err)
+//	}
+//}

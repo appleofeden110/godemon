@@ -14,17 +14,19 @@ type Queue[T any] struct {
 }
 
 // nil -> 1 -> 23 -> 56 -> nil
-func (q *Queue[T]) Enqueue(val T) {
+func (q *Queue[T]) Enqueue(val T) *Queue[T] {
 	n := new(QNode[T])
 	n.Value = val
 	if q.Length == 0 {
 		q.Head = n
 		q.Tail = n
+		return q
 	} else {
 		q.Tail.Next = n
 		q.Tail = n
 	}
 	q.Length++
+	return q
 }
 
 func (q *Queue[T]) Deque() T {

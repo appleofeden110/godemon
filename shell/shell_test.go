@@ -25,3 +25,11 @@ func TestGetPIDs(t *testing.T) {
 		t.Fatalf("Values don't match. expected: %v, got: %v", expVal_2, trueVal_2)
 	}
 }
+
+func TestSuspendProc(t *testing.T) {
+	f := &File{ProcessName: "godemon", PID: 30309}
+	err := f.SuspendProc()
+	if err != nil {
+		t.Fatalf("Error suspending: %v\n", err)
+	}
+}
