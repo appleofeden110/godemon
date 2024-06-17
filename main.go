@@ -57,7 +57,7 @@ func GodemonInit() error {
 
 func check(err error, msg ...string) {
 	if err != nil {
-		log.Fatalf("GODEMON ERR: %s", msg)
+		log.Fatalf("GODEMON ERR: %s: %v", msg, err)
 	}
 }
 
