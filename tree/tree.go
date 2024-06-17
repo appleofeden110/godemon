@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/appleofeden110/godemon/utils"
 	"io"
 	"os"
 	"path/filepath"
@@ -31,27 +30,39 @@ func (n *FileTreeNode) Error(err error) error {
 	return fmt.Errorf("GoDemon 𓁹‿𓁹: %v", err)
 }
 
-func NewFileNode(relPath string) *FileTreeNode {
+func NewFileNode(relPath string) (*FileTreeNode, error) {
 	value, err := os.Stat(relPath)
-	utils.Check(err)
-	return &FileTreeNode{Value: value, Path: relPath}
+	if err != nil {
+		return nil, err
+	}
+	return &FileTreeNode{Value: value, Path: relPath}, nil
 }
 
 // checks the file tree and gives FileTreeNode with the whole tree in it, and otherwise gives an error
 func BLR(path string, fls map[KeyFile]time.Time) (*FileTreeNode, error) {
-	n := NewFileNode(path)
+	n, err := NewFileNode(path)
+	if err != nil {
+		return nil, err
+	}
 	if n.Value.IsDir() {
 		files, err := os.ReadDir(path)
-		utils.Check(err)
+		if err != nil {
+			return nil, err
+		}
 		dirignore := make(map[string]bool)
 		err = IgnoreDirs(dirignore)
-		utils.Check(err)
+		if err != nil {
+			return nil, err
+		}
 		for _, f := range files {
 			if f.IsDir() && dirignore[f.Name()] {
 				continue
 			}
 			childPath := filepath.Join(path, f.Name())
-			childNode := NewFileNode(childPath)
+			childNode, err := NewFileNode(childPath)
+			if err != nil {
+				return nil, err
+			}
 			fls[KeyFile{childNode.Value.Name(), childPath}] = childNode.Value.ModTime()
 			_, _ = BLR(childPath, fls)
 
@@ -67,7 +78,6 @@ func IgnoreDirs(ignoreDirs map[string]bool) error {
 	jsonF, err := os.Open("ignoreDirs.json")
 	if err != nil {
 		return fmt.Errorf("There is an error reading json file: %v\n", err)
-
 	}
 	defer jsonF.Close()
 

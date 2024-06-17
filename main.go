@@ -1,9 +1,9 @@
-package godemon
+package main
 
 import (
 	"fmt"
+	"github.com/appleofeden110/godemon/shell"
 	"github.com/appleofeden110/godemon/tree"
-	"github.com/appleofeden110/godemon/utils"
 	"log"
 	"time"
 )
@@ -26,8 +26,7 @@ func GodemonInit() error {
 
 	for {
 		_, err := tree.BLR(".", fls)
-		utils.Check(err)
-
+		check(err, "tree problem")
 		if !mapCompare(flsBackUp, fls) {
 			//for now, no shell()
 
@@ -49,10 +48,19 @@ func GodemonInit() error {
 	}
 }
 
-//
-//func main() {
-//	err := GodemonInit()
-//	if err != nil {
-//		panic(err)
-//	}
-//}
+func check(err error, msg ...string) {
+	if err != nil {
+		log.Fatalf("GODEMON ERR: %s", msg)
+	}
+}
+
+func main() {
+	err := GodemonInit()
+	if err != nil {
+		panic(err)
+	}
+}
+
+func ShellHAHA() (*shell.File, error) {
+	return shell.CreateFile()
+}
