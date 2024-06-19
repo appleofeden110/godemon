@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/appleofeden110/godemon/utils"
 	"io"
 	"os"
 	"path/filepath"
@@ -50,7 +51,7 @@ func BLR(path string, fls map[KeyFile]time.Time) (*FileTreeNode, error) {
 			return nil, err
 		}
 		dirignore := make(map[string]bool)
-		err = IgnoreDirs(dirignore)
+		err = ignoreDirs(dirignore)
 		if err != nil {
 			return nil, err
 		}
@@ -74,10 +75,10 @@ func BLR(path string, fls map[KeyFile]time.Time) (*FileTreeNode, error) {
 	return n, nil
 }
 
-func IgnoreDirs(ignoreDirs map[string]bool) error {
+func ignoreDirs(ignoreDirs map[string]bool) error {
 	jsonF, err := os.Open("ignoreDirs.json")
 	if err != nil {
-		return fmt.Errorf("There is an error reading json file: %v\n", err)
+		return utils.ErrIgnoreDirs
 	}
 	defer jsonF.Close()
 

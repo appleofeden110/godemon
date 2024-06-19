@@ -54,6 +54,7 @@ func CreateFile() (*File, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	pids, err := GetPIDs(nf.ProcessName)
 	if err != nil {
 		return nil, err
