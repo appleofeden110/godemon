@@ -1,10 +1,9 @@
-package tree
+package main
 
 import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/appleofeden110/godemon/utils"
 	"io"
 	"os"
 	"path/filepath"
@@ -78,7 +77,7 @@ func BLR(path string, fls map[KeyFile]time.Time) (*FileTreeNode, error) {
 func ignoreDirs(ignoreDirs map[string]bool) error {
 	jsonF, err := os.Open("ignoreDirs.json")
 	if err != nil {
-		return utils.ErrIgnoreDirs
+		return ErrIgnoreDirs
 	}
 	defer jsonF.Close()
 
