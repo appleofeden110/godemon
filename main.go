@@ -1,4 +1,4 @@
-package godemon
+package main
 
 import (
 	"fmt"
@@ -6,6 +6,7 @@ import (
 	"github.com/appleofeden110/godemon/tree"
 	"log"
 	"os"
+	"strings"
 	"time"
 )
 
@@ -31,7 +32,8 @@ func GodemonInit() error {
 		if !mapCompare(flsBackUp, fls) {
 			//for now, no shell()
 			prgName := os.Args[0]
-			p, err := shell.GetPIDs(prgName)
+			name, _ := strings.CutPrefix(prgName, "./")
+			p, err := shell.GetPIDs(name)
 			check(err, "err getting pid")
 			q, errs := shell.RestartL(p[0])
 			check(errs, "restart")
@@ -61,10 +63,9 @@ func check(err error, msg ...string) {
 	}
 }
 
-//
-//func main() {
-//	err := GodemonInit()
-//	if err != nil {
-//		panic(err)
-//	}
-//}
+func main() {
+	err := GodemonInit()
+	if err != nil {
+		panic(err)
+	}
+}
