@@ -1,4 +1,5 @@
- {
-   ".git": true,
-   ".idea": true
- }
+{
+  ".git": true,
+  ".idea": true,
+  ".godemon": true
+}

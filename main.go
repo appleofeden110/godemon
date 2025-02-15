@@ -1,10 +1,8 @@
-package godemon
+package main
 
 import (
 	"fmt"
 	"log"
-	"os"
-	"strings"
 	"time"
 )
 
@@ -26,6 +24,10 @@ func mapCompare(map1, map2 map[KeyFile]time.Time) bool {
 	return true
 }
 
+// func StartDetachedProcess() (int, error) {
+
+// }
+
 func GodemonInit() error {
 	flsBackUp := make(map[KeyFile]time.Time)
 	fls := make(map[KeyFile]time.Time)
@@ -37,18 +39,18 @@ func GodemonInit() error {
 		}
 		if !mapCompare(flsBackUp, fls) {
 			//for now, no shell()
-			prgName := os.Args[0]
-			name, _ := strings.CutPrefix(prgName, "./")
-			p, err := GetPIDs(name)
-			if err != nil {
-				return fmt.Errorf("err getting pid: %v\n", err)
-			}
-			q, errs := RestartL(p[0])
-			if errs != nil {
-				return fmt.Errorf("restartL: %v\n", err)
-			}
-			node := q.Peek()
-			fmt.Println(node)
+			// prgName := os.Args[0]
+			// name, _  := strings.CutPrefix(prgName, "./")
+			// p, err := GetPIDs(name)
+			// if err != nil {
+			// return fmt.Errorf("err getting pid: %v\n", err)
+			// }
+			// q, errs := RestartL(p[0])
+			// if errs != nil {
+			// return fmt.Errorf("restartL: %v\n", err)
+			// }
+			// node := q.Peek()
+			// fmt.Println(node)
 			// Create a new map and deep copy fls into it
 			newBackup := make(map[KeyFile]time.Time)
 			for k, v := range fls {

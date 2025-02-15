@@ -1,4 +1,4 @@
-package godemon
+package main
 
 import "errors"
 

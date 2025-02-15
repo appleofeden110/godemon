@@ -1,24 +1,21 @@
-package godemon
+package main
 
 import (
 	"bufio"
 	"errors"
 	"fmt"
-	"github.com/appleofeden110/godemon/queue"
 	"log"
 	"math/rand"
 	"os"
 	"os/exec"
 	"strconv"
+	// "github.com/appleofeden110/godemon/queue"
 )
 
 type File struct {
 	PID         int
 	ProcessName string
 	path        string
-}
-
-type InterfaceFile interface {
 }
 
 func newFile(processName string) *File {
@@ -29,16 +26,14 @@ func newFile(processName string) *File {
 // It is using the newFile function that is creating new instance of a File struct.
 func CreateFile() (*File, error) {
 	nf := newFile(fmt.Sprintf("godemon_%s", RandChar()))
-	root, err := os.Getwd()
-	if err != nil {
-		return nil, err
-	}
-	gDirPath := fmt.Sprintf("%s/.godemon/", root)
+	// I think it is better to have a tmp folder for the whole system to be able to process it basically. (it will delete it on the end of the run of the program)
+	gDirPath := "/tmp/.godemon/"
+
 	// Check if the folder exists
 	if _, err := os.Stat(gDirPath); os.IsNotExist(err) {
 		// If the folder does not exist, create it
 		if err != nil {
-			log.Printf("Hui: %v\n", err)
+			log.Printf("Error: %v\n", err)
 		}
 		err := os.MkdirAll(gDirPath, os.ModePerm)
 		if err != nil {
@@ -50,7 +45,7 @@ func CreateFile() (*File, error) {
 	fullPath := fmt.Sprintf("%s%s", gDirPath, nf.ProcessName)
 	cmdCommand := []string{"build", "-o", fullPath}
 	cmd := exec.Command("go", cmdCommand...)
-	err = cmd.Run()
+	err := cmd.Run()
 	if err != nil {
 		return nil, err
 	}
@@ -132,37 +127,16 @@ func RandChar() string {
 	return string(chars)
 }
 
-// RestartL follows the process:
-// 1) build a new process
-// 2) when the process has been built, start it
-// 3) kill the old one (using initPid)
-func RestartL(initPid int) (*queue.Queue[int], error) {
-	// Step 1: Build a new process
-	nf, err := CreateFile()
+// StartDetachedProcess should have an argument of the current program that is running this function, so that godemon can
+// simply
+func StartDetachedProcess(args []string) error {
+	pids, err := GetPIDs(args[0])
 	if err != nil {
-		return nil, fmt.Errorf("error creating new file: %v", err)
+		return fmt.Errorf("error starting detached process, pids step: %v\n", err)
 	}
-
-	// Step 2: Start the new process
-	err = nf.RunProc()
-	if err != nil {
-		return nil, fmt.Errorf("error starting new process: %v", err)
+	if len(pids) > 1 {
+		log.Println("found more than one process, using the one with pid: ", pids[0])
 	}
-
-	// Step 3: Kill the old process
-	oldProcess := &File{PID: initPid}
-	err = oldProcess.SuspendProc()
-	if err != nil {
-		return nil, fmt.Errorf("error suspending old process: %v", err)
-	}
-
-	// Return the queue with the PID of the new process
-	q := new(queue.Queue[int])
-	q.Enqueue(nf.PID)
-
-	return q, nil
+	// to do: same terminal output, daemon logic
+	return nil
 }
-
-//func RestartW() {
-//
-//}
