@@ -1,4 +1,4 @@
-package main
+package godemon
 
 import (
 	"fmt"
@@ -23,10 +23,6 @@ func mapCompare(map1, map2 map[KeyFile]time.Time) bool {
 	}
 	return true
 }
-
-// func StartDetachedProcess() (int, error) {
-
-// }
 
 func GodemonInit() error {
 	flsBackUp := make(map[KeyFile]time.Time)

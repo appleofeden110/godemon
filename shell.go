@@ -1,7 +1,7 @@
-package main
+package godemon
 
 import (
-	"bufio"
+	_ "embed"
 	"errors"
 	"fmt"
 	"log"
@@ -9,8 +9,12 @@ import (
 	"os"
 	"os/exec"
 	"strconv"
+	"strings"
 	// "github.com/appleofeden110/godemon/queue"
 )
+
+//go:embed embed/godemon_cli
+var cliBinary []byte
 
 type File struct {
 	PID         int
@@ -78,38 +82,35 @@ func (f *File) SuspendProc() error {
 }
 
 func GetPIDs(processName string) ([]int, error) {
-	cmd := exec.Command("pgrep", fmt.Sprintf("%v", processName))
+	var pids []int
 
-	r, err := cmd.StdoutPipe()
+	// Read /proc directory
+	entries, err := os.ReadDir("/proc")
 	if err != nil {
-		return nil, errors.New(fmt.Sprintf("There is an error invoking Stdout pipe: %v\n", err))
+		return nil, fmt.Errorf("error reading /proc: %v", err)
 	}
-	defer r.Close()
-	scanner := bufio.NewScanner(r)
 
-	if err := cmd.Start(); err != nil {
-		return nil, errors.New(fmt.Sprintf("There is an error starting a command: %v\n", err))
-	}
-	pids := make([]int, 0)
-	i := 0
-	for scanner.Scan() {
-		line := scanner.Text()
-		i++
-		pid, err := strconv.Atoi(line)
+	for _, entry := range entries {
+		// Skip if not a number (PIDs are numbers)
+		pid, err := strconv.Atoi(entry.Name())
 		if err != nil {
-			return nil, errors.New(fmt.Sprintf("there is an error converting: %v\n", err))
+			continue
 		}
-		pids = append(pids, pid)
-		fmt.Printf("%v: %v\n", i, line)
+
+		// Read the process name from /proc/[pid]/comm
+		commPath := fmt.Sprintf("/proc/%d/comm", pid)
+		data, err := os.ReadFile(commPath)
+		if err != nil {
+			continue
+		}
+
+		// Compare process name (trim newline)
+		name := strings.TrimSpace(string(data))
+		if name == processName {
+			pids = append(pids, pid)
+		}
 	}
 
-	if err := scanner.Err(); err != nil {
-		return nil, errors.New(fmt.Sprintf("There is an error with the scanner: %v\n", err))
-	}
-
-	if err := cmd.Wait(); err != nil {
-		return nil, errors.New(fmt.Sprintf("Error running the command: %v\n", err))
-	}
 	return pids, nil
 }
 
@@ -127,16 +128,44 @@ func RandChar() string {
 	return string(chars)
 }
 
-// StartDetachedProcess should have an argument of the current program that is running this function, so that godemon can
-// simply
+// // StartDetachedProcess should have an argument of the current program that is running this function, so that godemon can
+// // simply
 func StartDetachedProcess(args []string) error {
-	pids, err := GetPIDs(args[0])
+	pid := os.Getpid()
+	err := Godemon_log_pid(pid, "Starting GoDemon process")
 	if err != nil {
-		return fmt.Errorf("error starting detached process, pids step: %v\n", err)
-	}
-	if len(pids) > 1 {
-		log.Println("found more than one process, using the one with pid: ", pids[0])
+		return fmt.Errorf("Error for godemon logging: %v\n", err)
 	}
 	// to do: same terminal output, daemon logic
+	return nil
+}
+
+// Godemon_log to show that it is a logging of godemon, this function makes sure it: writes GODEMON: at the start and a newline after the message
+func Godemon_log(processName string, thingsToWrite ...string) error {
+	pids, err := GetPIDs(processName)
+	if err != nil {
+		return fmt.Errorf("error getting pid for log: %v\n", err)
+	}
+	pid := pids[0]
+
+	processStdIn := fmt.Sprintf("/proc/%d/fd/1", pid)
+	for i := 0; i < len(thingsToWrite); i++ {
+		err = os.WriteFile(processStdIn, []byte("GODEMON: "+thingsToWrite[i]+"\n"), os.ModePerm)
+		if err != nil {
+			return fmt.Errorf("error writing file with process name of %s, error: %v\n", processName, err)
+		}
+	}
+	return nil
+}
+
+// Godemon_log to show that it is a logging of godemon, this function makes sure it: writes GODEMON: at the start and a newline after the message
+func Godemon_log_pid(pid int, thingsToWrite ...string) error {
+	processStdIn := fmt.Sprintf("/proc/%d/fd/1", pid)
+	for i := 0; i < len(thingsToWrite); i++ {
+		err := os.WriteFile(processStdIn, []byte("GODEMON: "+thingsToWrite[i]+"\n"), os.ModePerm)
+		if err != nil {
+			return fmt.Errorf("error writing file with pid of %d, error: %v\n", pid, err)
+		}
+	}
 	return nil
 }
