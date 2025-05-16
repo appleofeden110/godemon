@@ -1,10 +1,7 @@
-package godemon
+package tree_check
 
 import (
-	"encoding/json"
-	"errors"
 	"fmt"
-	"io"
 	"os"
 	"path/filepath"
 	"time"
@@ -22,12 +19,8 @@ type (
 	}
 )
 
-var (
-	ErrChanged = errors.New("File has changed")
-)
-
 func (n *FileTreeNode) Error(err error) error {
-	return fmt.Errorf("GoDemon 𓁹‿𓁹: %v", err)
+	return fmt.Errorf("Godemon error: %v\n", err)
 }
 
 func NewFileNode(relPath string) (*FileTreeNode, error) {
@@ -41,6 +34,7 @@ func NewFileNode(relPath string) (*FileTreeNode, error) {
 // checks the file tree and gives FileTreeNode with the whole tree in it, and otherwise gives an error
 func BLR(path string, fls map[KeyFile]time.Time) (*FileTreeNode, error) {
 	n, err := NewFileNode(path)
+
 	if err != nil {
 		return nil, err
 	}
@@ -72,22 +66,4 @@ func BLR(path string, fls map[KeyFile]time.Time) (*FileTreeNode, error) {
 		}
 	}
 	return n, nil
-}
-
-func ignoreDirs(ignoreDirs map[string]bool) error {
-	jsonF, err := os.Open("ignoreDirs.json")
-	if err != nil {
-		return ErrIgnoreDirs
-	}
-	defer jsonF.Close()
-
-	b, err := io.ReadAll(jsonF)
-	if err != nil {
-		return fmt.Errorf("error: %v", err)
-	}
-	err = json.Unmarshal(b, &ignoreDirs)
-	if err != nil {
-		return fmt.Errorf("There is an error unmarshaling data: %v\n", err)
-	}
-	return nil
 }

@@ -1,9 +1,11 @@
 package main
 
-import godemon "github.com/appleofeden110/godemon/tree-check"
+import (
+	"github.com/appleofeden110/godemon/tree_check"
+)
 
 func main() {
-	err := godemon.GodemonInit()
+	err := tree_check.TreeCheck()
 	if err != nil {
 		panic(err)
 	}
