@@ -17,4 +17,3 @@ Write here if you have any questions: nazikkaniuka@gmail.com
 Thanks,
 Naz
 
-fuck you
