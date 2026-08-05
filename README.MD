@@ -10,15 +10,11 @@ GoDemon is an active development project that traverses a project's directory tr
 
 ## Features
 
-- 📁 **Directory Tree Traversal**: Uses a General Tree structure with DFS to efficiently scan your entire project
-- 👀 **Real-time File Monitoring**: Continuously watches for file changes every 2 seconds
-- 🎨 **Color-Coded Output**: 
-  - 🟢 Green (`✓`) for newly added files
-  - 🔴 Red (`✗`) for deleted files
-  - 🟡 Yellow (`!`) for modified files
-- 📊 **Project Size Tracking**: Displays the total number of files being monitored
-- 🔧 **Configurable Ignore Patterns**: Uses JSON configuration files to exclude directories from monitoring
-- 🏗️ **Scalable Architecture**: Built with a queue-based system for efficient file processing
+- **Directory Tree Traversal**: Uses a General Tree structure with DFS to efficiently scan your entire project
+- **Real-time File Monitoring**: Continuously watches for file changes every 2 seconds
+- **Project Size Tracking**: Displays the total number of files being monitored
+- **Configurable Ignore Patterns**: Uses JSON configuration files to exclude directories from monitoring
+- **Scalable Architecture**: Built with a queue-based system for efficient file processing
 
 ## How It Works
 
@@ -77,27 +73,6 @@ go build -o godemon
 ./godemon
 ```
 
-### Expected Output
-
-When you start GoDemon:
-```
-[✓] Files and directories (total in the project: 124) have been added to the watchlist:
-	- main.go (./main.go)
-	- init.go (./tree_check/init.go)
-	...
-
-Waiting for more changes...
-```
-
-When files change:
-```
-[!] Files and directories have changed:
-	- main.go (./main.go)
-
-SIZE OF THE PROJECT: 124
-Waiting for more changes...
-```
-
 ## Technical Details
 
 - **Data Structure**: General Tree with node-based hierarchy
@@ -105,14 +80,6 @@ Waiting for more changes...
 - **Polling Interval**: 2 seconds (configurable in code)
 - **Configuration Format**: JSON for ignore patterns
 - **Output**: Color-formatted console output with ANSI escape codes
-
-## Future Plans
-
-- 🐧 **Linux CLI Application**: Plans to package GoDemon as a proper Linux CLI tool
-- 🔌 **HTTP Server Integration**: Automatic HTTP server restart on changes
-- ⚙️ **Configuration Automation**: Automated setup of configuration files
-- 📝 **Enhanced Logging**: Detailed logging capabilities
-- 🎯 **Watch-specific Directories**: Ability to watch only selected directories
 
 ## Contributing
 
@@ -128,8 +95,6 @@ This project is licensed under the MIT License. See [LICENSE.txt](LICENSE.txt) f
 ## Contact
 
 Have questions or suggestions? Reach out:
-- **Email**: nazikkaniuka@gmail.com
+- **Email**: nazarkaniuka6@gmail.com
 
 ---
-
-*GoDemon - Watch your project grow* 🔍
